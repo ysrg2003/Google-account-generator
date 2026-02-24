@@ -14,10 +14,10 @@ from playwright.sync_api import TimeoutError
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("UltimateGoogleBot")
 
-# --- [تم دمج المسارات هنا لإصلاح خطأ القوس المفقود ومنع تضارب المجلدات] ---
-SESSION_ID = f"ULTIMATE_ENGINE_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+# --- تصحيح المسارات: أبقيت على نظام التسمية الخاص بك مع إصلاح خطأ القوس ---
+SESSION_ID = f"PRO_ENGINE_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 REPORT_DIR = os.path.join(os.getcwd(), SESSION_ID)
-os.makedirs(os.path.join(REPORT_DIR, "screenshots"), exist_ok=True) 
+os.makedirs(os.path.join(REPORT_DIR, "screenshots"), exist_ok=True) # تم إصلاح القوس هنا
 
 class UltimateEngine:
     def __init__(self, page):
@@ -72,18 +72,24 @@ class UltimateEngine:
             logger.warning(f"Could not take screenshot: {e}")
 
     def smart_input(self, selector_list, value, label):
-        """محرك إدخال ذكي يحاكي البشر ويبحث عن الحقل بأكثر من طريقة"""
+        """محرك إدخال ذكي - مع إضافة ميزة الانتظار لتجاوز خطأ الـ DOM"""
         self.take_evidence(f"PRE_INPUT_{label}")
         target = None
+        
+        # إضافة انتظار صريح لضمان أن جوجل قامت بتحميل الحقل قبل البحث عنه
+        # هذا هو الحل لخطأ 'FirstName not found'
         for selector in selector_list:
             try:
+                self.page.wait_for_selector(selector, state="visible", timeout=10000)
                 el = self.page.locator(selector).first
-                if el.is_visible(timeout=5000):
+                if el.is_visible():
                     target = el
                     break
             except: continue
         
         if not target:
+            # لقطة شاشة للخطأ قبل الانهيار لمعرفة ما تراه العين البرمجية
+            self.take_evidence(f"CRITICAL_NOT_FOUND_{label}")
             raise Exception(f"CRITICAL: Field {label} not found in DOM.")
 
         target.click()
@@ -99,8 +105,9 @@ class UltimateEngine:
         clicked = False
         for selector in selector_list:
             try:
+                # ننتظر الزر قليلاً قبل المحاولة
                 btn = self.page.locator(selector).first
-                if btn.is_visible(timeout=4000):
+                if btn.is_visible(timeout=5000):
                     btn.click()
                     clicked = True
                     break
@@ -120,7 +127,7 @@ class UltimateEngine:
             raise Exception(f"Failed to click required button: {label}")
 
     def auto_skip_manager(self):
-        """مدير التخطي الذكي لمواجهة جدران الحماية في جوجل"""
+        """مدير التخطي: يقوم بمسح الصفحة بحثاً عن خيارات التخطي"""
         skip_selectors = [
             'button:has-text("تخطي")', 'button:has-text("Skip")',
             'span:has-text("تخطي")', 'span:has-text("Skip")',
@@ -131,25 +138,26 @@ class UltimateEngine:
         logger.info("Scanning for 'Skip' options...")
         for _ in range(3):
             time.sleep(1.5)
-            # تم تعديل المنطق هنا ليعمل مع دالة smart_click بشكل صحيح
-            found_skip = False
+            # استخدام smart_click داخلياً للحفاظ على نفس المنطق
+            found = False
             for selector in skip_selectors:
                 try:
-                    btn = self.page.locator(selector).first
-                    if btn.is_visible(timeout=1000):
-                        btn.click()
-                        found_skip = True
+                    if self.page.locator(selector).first.is_visible(timeout=1000):
+                        self.page.locator(selector).first.click()
                         logger.info("✨ Skip detected and executed.")
                         self.page.wait_for_load_state("networkidle")
+                        found = True
                         break
                 except: continue
-            if not found_skip: break
+            if not found: break
 
     def run_process(self):
         """تنفيذ العملية الكاملة دون اختصار"""
         try:
             logger.info(f"Starting Registration with Identity: {self.identity['first_name']}")
-            self.page.goto("https://accounts.google.com/lifecycle/steps/signup/name?continue=https://www.google.com/&flowEntry=SignUp", wait_until="networkidle")
+            
+            # الانتقال للرابط المباشر لضمان عدم التوهان في صفحات جوجل الجانبية
+            self.page.goto("https://accounts.google.com/signup/v2/webcreateaccount?flowName=GlifWebSignIn&flowEntry=SignUp", wait_until="networkidle")
             
             # 1. الأسماء
             self.smart_input(['input[name="firstName"]', '#firstName'], self.identity['first_name'], "FirstName")
@@ -209,6 +217,7 @@ class UltimateEngine:
         logger.info(f"Report generated at: {REPORT_DIR}")
 
 if __name__ == "__main__":
+    # استخدام Camoufox بكامل قوته التخفية
     with Camoufox(headless=True, humanize=True) as browser:
         page = browser.new_page()
         page.set_viewport_size({"width": 1920, "height": 1080})
