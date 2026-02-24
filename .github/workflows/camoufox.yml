@@ -35,13 +35,13 @@ jobs:
       - name: 🚀 تشغيل المحرك (Deep Execution)
         run: |
           source venv/bin/activate
-          xvfb-run --auto-servernum --server-args="-screen 0 1280x800x24"
+          
           # ضمان ظهور السجلات فوراً
           unset GITHUB_ACTIONS
           unset CI
           unset GITHUB_RUN_ID
           export PYTHONUNBUFFERED=1
-          xvfb-run python main.py
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x800x24" python main.py
         env:
           PYTHONUNBUFFERED: 1
 
