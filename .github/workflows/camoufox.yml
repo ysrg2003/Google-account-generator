@@ -35,6 +35,7 @@ jobs:
       - name: 🚀 تشغيل المحرك (Deep Execution)
         run: |
           source venv/bin/activate
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x800x24"
           # ضمان ظهور السجلات فوراً
           export PYTHONUNBUFFERED=1
           python main.py
