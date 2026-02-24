@@ -6,7 +6,7 @@ on:
 jobs:
   run-core:
     runs-on: ubuntu-latest
-    timeout-minutes: 15 # حماية من التعليق اللانهائي
+    timeout-minutes: 20 # زيادة الوقت قليلاً لضمان إتمام كافة عمليات "التخطي"
 
     steps:
       - name: 📥 سحب الكود
@@ -24,11 +24,12 @@ jobs:
           path: |
             ~/.cache/pip
             ~/.cache/ms-playwright
-          key: ${{ runner.os }}-automation-v1-${{ hashFiles('**/requirements.txt') }}
+          key: ${{ runner.os }}-automation-v2-${{ hashFiles('**/requirements.txt') }}
 
-      - name: 🛠️ تثبيت المحرك (Silent Mode)
+      - name: 🛠️ تثبيت المحرك والاعتماديات
         run: |
-          pip install -r requirements.txt
+          # تأكد من وجود Faker و Camoufox في requirements.txt
+          pip install faker camoufox[nimbus] playwright
           if [ "${{ steps.cache-deps.outputs.cache-hit }}" != "true" ]; then
             python -m playwright install firefox --with-deps
           fi
@@ -37,12 +38,17 @@ jobs:
       - name: 🚀 تشغيل المحرك (Deep Execution)
         run: python main.py
         env:
-          PYTHONUNBUFFERED: 1 # لضمان ظهور السجلات فوراً في GitHub
+          PYTHONUNBUFFERED: 1 
+          # يمكن إضافة متغيرات بيئة هنا إذا أردت التحكم في السرعة أو عدد المحاولات
 
-      - name: 📊 تصدير الحزمة التوثيقية (Full Artifact)
-        if: always()
+      - name: 📊 تصدير الحزمة التوثيقية الشاملة
+        if: always() # لضمان رفع التقارير حتى في حال فشل السكربت (لرؤية لقطة شاشة الخطأ)
         uses: actions/upload-artifact@v4
         with:
-          name: Full-Trace-Report-${{ github.run_id }}
-          path: report_Google_Signup_Deep_Trace/
-          retention-days: 14 # الاحتفاظ بالبيانات لمدة أسبوعين
+          name: Full-Trace-Report-Session-${{ github.run_number }}
+          # التعديل هنا: نستخدم النمط TRACE_REPORT_* ليطابق المجلدات التي ينشئها الكود
+          path: |
+            TRACE_REPORT_*
+            PRO_ENGINE_*
+            *.json
+          retention-days: 14
