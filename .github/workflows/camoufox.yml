@@ -1,7 +1,7 @@
 name: Enterprise Web Automation Engine
 
 on:
-  workflow_dispatch: # تشغيل يدوي للتحكم المطلق
+  workflow_dispatch: # تشغيل يدوي
 
 jobs:
   run-core:
@@ -17,39 +17,37 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 🛠️ بناء البيئة المعزولة وتثبيت المحرك
+      - name: 🛠️ بناء البيئة وتثبيت المحرك
         run: |
-          # 1. إنشاء بيئة افتراضية لمنع تداخل المكتبات مع نظام التشغيل
+          # 1. إنشاء البيئة الافتراضية
           python -m venv venv
-          
-          # 2. تنشيط البيئة وتحديث أدوات التثبيت الأساسية
           source venv/bin/activate
-          python -m pip install --upgrade pip setuptools wheel
           
-          # 3. تثبيت المكتبات
+          # 2. تحديث الأدوات وتثبيت المكتبات
+          python -m pip install --upgrade pip setuptools wheel
           pip install faker camoufox[nimbus] playwright
           
-          # 4. تثبيت متصفح Firefox واعتمادات النظام (هذا الأمر يغني عن استخدام sudo بشكل يدوي)
+          # 3. الحل النهائي لمشكلة playwright command not found:
+          # نستخدم python -m لضمان الوصول للمكتبة داخل البيئة الافتراضية
+          # ونستخدم --with-deps لتثبيت اعتمادات النظام تلقائياً بدون تعارضات sudo
           python -m playwright install firefox --with-deps
 
       - name: 🚀 تشغيل المحرك (Deep Execution)
         run: |
-          # تنشيط البيئة قبل التشغيل لضمان رؤية مكتبة Playwright و Camoufox
           source venv/bin/activate
-          
-          # تشغيل السكربت الرئيسي مع ضمان تدفق السجلات فوراً
+          # ضمان ظهور السجلات فوراً
+          export PYTHONUNBUFFERED=1
           python main.py
         env:
           PYTHONUNBUFFERED: 1
 
       - name: 📊 تصدير الحزمة التوثيقية (Full Forensic Report)
-        if: always() 
+        if: always() # هذا السطر يضمن رفع الصور والتقارير حتى لو فشل السكربت
         uses: actions/upload-artifact@v4
         with:
           name: Full-Trace-Report-Run-${{ github.run_number }}
           path: |
-            ULTIMATE_ENGINE_*
+            PRO_ENGINE_*
             *.json
             *.log
           retention-days: 14
-
