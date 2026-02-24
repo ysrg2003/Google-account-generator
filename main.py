@@ -13,7 +13,7 @@ from playwright.sync_api import TimeoutError
 # نحدد اسم المجلد في البداية وننشئه فوراً
 SESSION_ID = f"PRO_ENGINE_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 REPORT_DIR = os.path.join(os.getcwd(), SESSION_ID)
-os.makedirs(os.path.join(REPORT_DIR, "screenshots"), exist_ok=True
+os.makedirs(os.path.join(REPORT_DIR, "screenshots"), exist_ok=True)
 
 
 # إعداد السجلات بشكل احترافي
