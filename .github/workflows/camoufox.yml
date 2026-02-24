@@ -43,12 +43,13 @@ jobs:
           PYTHONUNBUFFERED: 1
 
       - name: 📊 تصدير الحزمة التوثيقية (Full Forensic Report)
-        if: always() # لضمان رفع التقارير واللقطات حتى لو فشل السكربت في منتصف العملية
+        if: always() 
         uses: actions/upload-artifact@v4
         with:
           name: Full-Trace-Report-Run-${{ github.run_number }}
           path: |
-            PRO_ENGINE_*
+            ULTIMATE_ENGINE_*
             *.json
             *.log
           retention-days: 14
+
