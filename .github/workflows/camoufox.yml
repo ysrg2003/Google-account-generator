@@ -26,14 +26,11 @@ jobs:
           source venv/bin/activate
           python -m pip install --upgrade pip setuptools wheel
           
-          # 3. تثبيت المكتبات (Faker لتوليد البيانات، Camoufox للتخفي، Playwright للتحكم)
+          # 3. تثبيت المكتبات
           pip install faker camoufox[nimbus] playwright
           
-          # 4. تثبيت متصفح Firefox واعتماداته داخل البيئة المنشطة حصراً
-          playwright install firefox --with-deps
-          
-          # 5. تثبيت اعتمادات النظام اللازمة لتشغيل المتصفح في وضع Linux Headless
-          sudo playwright install-deps firefox
+          # 4. تثبيت متصفح Firefox واعتمادات النظام (هذا الأمر يغني عن استخدام sudo بشكل يدوي)
+          python -m playwright install firefox --with-deps
 
       - name: 🚀 تشغيل المحرك (Deep Execution)
         run: |
