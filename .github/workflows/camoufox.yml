@@ -1,38 +1,45 @@
-name: Camoufox Runner
+name: Camoufox Browser Automation
 
 on:
-  workflow_dispatch: # للتشغيل اليدوي
+  workflow_dispatch: # يتيح لك تشغيل السكربت يدوياً بضغطة زر
 
 jobs:
-  build:
+  run-automation:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      # 1. سحب الكود من المستودع
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+      # 2. إعداد بيئة بايثون
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
-    - name: Install System Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libgbm1 libasound2
+      # 3. تحديث النظام وتثبيت التبعيات (حل مشكلة libasound2)
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgbm1 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 libpango-1.0-0 libcairo2 libasound2t64
 
-    - name: Install Camoufox & Playwright
-      run: |
-        pip install camoufox playwright
-        # تحميل المتصفح الخاص بـ Camoufox
-        python -m playwright install firefox
-        python -m playwright install-deps firefox
+      # 4. تثبيت المكتبات والمتصفح
+      - name: Install Camoufox & Playwright
+        run: |
+          pip install camoufox playwright
+          # تثبيت محرك Firefox الخاص بـ Camoufox مع كافة تبعياته
+          python -m playwright install firefox --with-deps
 
-    - name: Run Script
-      run: python main.py
+      # 5. تشغيل السكربت
+      - name: Execute Script
+        run: python main.py
 
-    - name: Save Result Screenshot
-      uses: actions/upload-artifact@v4
-      with:
-        name: signup-screenshot
-        path: google_signup.png
+      # 6. رفع الصورة الناتجة كمرفق (Artifact)
+      - name: Upload Screenshot
+        if: always() # سيتم الرفع حتى لو فشل السكربت لرؤية الخطأ
+        uses: actions/upload-artifact@v4
+        with:
+          name: google-signup-result
+          path: google_signup.png
+          retention-days: 7
