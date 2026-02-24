@@ -6,6 +6,7 @@ import string
 import logging
 import uuid
 import re
+import numpy as np
 from datetime import datetime
 from faker import Faker
 from camoufox.sync_api import Camoufox
@@ -13,7 +14,7 @@ from playwright.sync_api import TimeoutError
 
 # --- إعداد السجلات الاحترافية ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("UltimateGoogleBot")
+logger = logging.getLogger("GhostEngine_Pro")
 
 SESSION_ID = f"PRO_ENGINE_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 REPORT_DIR = os.path.join(os.getcwd(), SESSION_ID)
@@ -22,13 +23,14 @@ os.makedirs(os.path.join(REPORT_DIR, "screenshots"), exist_ok=True)
 class UltimateEngine:
     def __init__(self, page):
         self.page = page
+        # 1. منطق التوافق: لغة متناسقة مع الموقع المختار
         self.fake = Faker(['en_US', 'ar_SA'])
         self.identity = self._generate_identity()
         self.steps_log = []
         self.step_idx = 0
 
     def _generate_identity(self):
-        """توليد هوية رقمية معقدة وشاملة"""
+        """توليد هوية رقمية معقدة وشاملة (كودك الأصلي)"""
         pool = string.ascii_lowercase + string.ascii_uppercase + string.digits + "+*"
         pwd = [
             random.choice(string.ascii_uppercase),
@@ -39,7 +41,6 @@ class UltimateEngine:
         pwd += [random.choice(pool) for _ in range(12)]
         random.shuffle(pwd)
         final_password = "".join(pwd)
-
         first = self.fake.first_name()
         last = self.fake.last_name()
         
@@ -55,6 +56,62 @@ class UltimateEngine:
             "username_choice": f"{first.lower()}{last.lower()}{random.randint(10000, 999999)}"
         }
 
+    # --- [ 7. منطق الحركة غير الخطية للماوس (Bezier Curves) ] ---
+    def _bezier_move(self, target_x, target_y):
+        """تحريك الماوس بمعادلة بيزيه: $B(t) = (1-t)^2 P_0 + 2(1-t)t P_1 + t^2 P_2$"""
+        try:
+            # نقطة البداية الحالية (أو نقطة عشوائية)
+            start_x = random.randint(0, 500)
+            start_y = random.randint(0, 500)
+            steps = random.randint(15, 30)
+            t = np.linspace(0, 1, steps)
+            
+            # نقطة تحكم عشوائية لخلق انحناء طبيعي
+            cx = start_x + (target_x - start_x) * random.uniform(0.1, 0.4)
+            cy = start_y + (target_y - start_y) * random.uniform(0.6, 0.9)
+            
+            x_pts = (1-t)**2 * start_x + 2*(1-t)*t * cx + t**2 * target_x
+            y_pts = (1-t)**2 * start_y + 2*(1-t)*t * cy + t**2 * target_y
+            
+            for x, y in zip(x_pts, y_pts):
+                self.page.mouse.move(x, y)
+                time.sleep(random.uniform(0.002, 0.005))
+        except: pass
+
+    # --- [ 4. منطق الكتابة البشرية (Natural Typing) ] ---
+    def _human_type(self, text):
+        """كتابة النص مع تأخير عشوائي (Action Jitter) وتصحيح وهمي"""
+        for char in str(text):
+            self.page.keyboard.type(char, delay=random.randint(100, 300))
+            if random.random() > 0.97: # محاكاة خطأ مطبعي أحياناً
+                time.sleep(random.uniform(0.1, 0.3))
+                self.page.keyboard.press("Backspace")
+                self.page.keyboard.type(char, delay=random.randint(50, 150))
+
+    # --- [ 13. التمرير الوهمي (Fake Scrolling) ] ---
+    def _human_scroll(self):
+        for _ in range(random.randint(2, 4)):
+            self.page.mouse.wheel(0, random.randint(300, 600))
+            time.sleep(random.uniform(0.8, 1.5))
+            if random.random() > 0.6: # صعود طفيف كأننا نقرأ
+                self.page.mouse.wheel(0, -random.randint(100, 200))
+
+    # --- [ 6. منطق تسخين الكوكيز (Pre-baked Cookies) ] ---
+    def _pre_warmup(self):
+        logger.info("🍪 Warming up browser with Google Search...")
+        try:
+            self.page.goto("https://www.google.com")
+            time.sleep(random.uniform(2, 4))
+            search_box = self.page.locator('textarea[name="q"], input[name="q"]').first
+            if search_box.is_visible():
+                self._bezier_move(500, 500) # تحريك وهمي
+                search_box.click()
+                self._human_type(random.choice(["top tech news 2026", "how to bake cake", "weather"]))
+                self.page.keyboard.press("Enter")
+                time.sleep(random.uniform(3, 5))
+                self._human_scroll()
+        except: pass
+
     def take_evidence(self, action_label):
         self.step_idx += 1
         ts = datetime.now().strftime("%H%M%S_%f")
@@ -62,35 +119,29 @@ class UltimateEngine:
         save_path = os.path.join(REPORT_DIR, "screenshots", filename)
         try:
             self.page.screenshot(path=save_path, full_page=True)
-            self.steps_log.append({
-                "step_index": self.step_idx,
-                "label": action_label,
-                "timestamp": ts,
-                "url": self.page.url,
-                "screenshot": filename
-            })
-        except Exception as e:
-            logger.warning(f"Evidence capture failed: {e}")
+            self.steps_log.append({"step_index": self.step_idx, "label": action_label, "timestamp": ts, "url": self.page.url, "screenshot": filename})
+        except: pass
 
-    # --- [ ميزة القناص الفيزيائي ] ---
+    # --- [ ميزة القناص الفيزيائي المطورة ] ---
     def physical_click_fallback(self, element, label):
         try:
             box = element.bounding_box()
             if box:
                 center_x = box['x'] + box['width'] / 2
                 center_y = box['y'] + box['height'] / 2
-                logger.info(f"🖱️ Physical Click at ({center_x}, {center_y}) for {label}")
+                logger.info(f"🖱️ Physical Human Click for {label}")
+                # 7+12. تحريك بالمنحنيات + التحويم قبل الضغط
+                self._bezier_move(center_x, center_y)
+                time.sleep(random.uniform(0.3, 0.8))
                 self.page.mouse.click(center_x, center_y)
                 return True
         except: pass
         return False
 
-    # --- [ ميزة الاستكشاف العميق Deep DOM ] ---
+    # --- [ ميزة الاستكشاف العميق Deep DOM (كودك الأصلي بالكامل) ] ---
     def deep_dom_discovery(self, keyword, action="input", value=None):
         logger.info(f"🔍 Deep Discovery Scan for: {keyword}")
-        # تحسين: البحث عن كلمات جزئية لزيادة الدقة
         search_terms = keyword.lower().split('_')
-        
         elements = self.page.query_selector_all("input:not([type='hidden']), button, div[role='button'], div[role='combobox'], div[role='radio'], [aria-label], [placeholder]")
         
         for el in elements:
@@ -100,85 +151,70 @@ class UltimateEngine:
                     logger.info(f"✨ Deep Match Found for {keyword}!")
                     el.scroll_into_view_if_needed()
                     if action == "input":
-                        el.click(force=True)
+                        self.physical_click_fallback(el, keyword)
                         self.page.keyboard.press("Control+A")
                         self.page.keyboard.press("Backspace")
-                        self.page.keyboard.type(str(value), delay=random.randint(50, 150))
+                        self._human_type(value)
                     else:
-                        if not self.physical_click_fallback(el, keyword):
-                            el.click(force=True)
+                        if not self.physical_click_fallback(el, keyword): el.click(force=True)
                     return True
             except: continue
         return self.tab_navigation_fallback(keyword, action, value)
 
-    # --- [ خطة الطوارئ: TAB ] ---
+    # --- [ خطة الطوارئ: TAB (كودك الأصلي) ] ---
     def tab_navigation_fallback(self, keyword, action="input", value=None):
         logger.warning(f"⌨️ TAB Fallback for: {keyword}")
         self.page.keyboard.press("Control+Home") 
         time.sleep(0.5)
         for i in range(40):
             self.page.keyboard.press("Tab")
-            time.sleep(0.1)
+            time.sleep(random.uniform(0.1, 0.2))
             active_info = self.page.evaluate("() => document.activeElement.outerHTML.toLowerCase()")
             if any(term in active_info for term in keyword.lower().split('_')):
-                if action == "input":
-                    self.page.keyboard.type(str(value), delay=random.randint(50, 150))
-                else:
-                    self.page.keyboard.press("Enter")
+                if action == "input": self._human_type(value)
+                else: self.page.keyboard.press("Enter")
                 return True
         return False
 
-    # --- [ الخطة النهائية: المستكشف الذاتي الوحشي ] ---
+    # --- [ الخطة النهائية: المستكشف الذاتي الوحشي (كودك الأصلي) ] ---
     def autonomous_blind_discovery(self):
-        logger.warning("🚀 EXECUTING BLIND DISCOVERY: Interacting with ALL elements...")
+        logger.warning("🚀 EXECUTING BLIND DISCOVERY...")
         all_elements = self.page.query_selector_all("input:not([type='hidden']), [role='combobox'], [role='listbox'], [role='radio'], select, div[contenteditable='true']")
-        
         for el in all_elements:
             try:
                 if not el.is_visible(): continue
-                role = (el.get_attribute("role") or "").lower()
-                name = (el.get_attribute("name") or "").lower()
-                tag = el.tag_name().lower()
-
+                role = (el.get_attribute("role") or "").lower(); name = (el.get_attribute("name") or "").lower(); tag = el.tag_name().lower()
                 if role == "radio":
-                    if not self.physical_click_fallback(el, "Auto_Radio"): el.click(force=True)
+                    self.physical_click_fallback(el, "Auto_Radio")
                     time.sleep(0.5)
                 elif "pass" in name or "Pass" in name:
-                    el.fill(self.identity['password'])
+                    self.physical_click_fallback(el, "Auto_Pass"); self._human_type(self.identity['password'])
                 elif tag == "select" or role in ["combobox", "listbox"]:
-                    el.click(force=True)
-                    for _ in range(3): self.page.keyboard.press("ArrowDown")
-                    self.page.keyboard.press("Enter")
+                    el.click(); [self.page.keyboard.press("ArrowDown") for _ in range(3)]; self.page.keyboard.press("Enter")
                 elif tag == "input":
                     val = self.identity['username_choice'] if "User" in name or "Email" in name else self.identity['first_name']
-                    el.fill(val)
+                    self.physical_click_fallback(el, "Auto_Input"); self._human_type(val)
             except: continue
         self.page.keyboard.press("Enter")
         time.sleep(2)
 
-    # --- [ ميزة تعبئة الباسوورد التتابعي ] ---
+    # --- [ ميزة تعبئة الباسوورد التتابعي (كودك الأصلي) ] ---
     def handle_password_matrix(self):
-        """الحل النهائي لتجاوز مشكلة حقل تأكيد كلمة المرور"""
         logger.info("🔐 Deploying Password Matrix Strategy...")
         pwd = self.identity['password']
         self.take_evidence("PRE_PASS_MATRIX")
-        
         try:
-            # 1. البحث عن كافة حقول الباسوورد
             fields = self.page.locator('input[type="password"]').all()
             if len(fields) >= 2:
                 for i, field in enumerate(fields):
-                    field.fill(pwd)
-                    logger.info(f"✅ Matrix: Filled password field #{i+1}")
+                    self.physical_click_fallback(field, f"PassField_{i}")
+                    self._human_type(pwd)
                 return True
-            
-            # 2. إذا لم يجدها بالنوع، يبحث عنها بالاستكشاف العميق
             success1 = self.smart_input(['input[name="Passwd"]'], pwd, "Passwd")
             success2 = self.smart_input(['input[name="ConfirmPasswd"]'], pwd, "ConfirmPasswd")
             return success1 and success2
         except Exception as e:
-            logger.error(f"Matrix Failure: {e}")
-            return False
+            logger.error(f"Matrix Failure: {e}"); return False
 
     def smart_input(self, selector_list, value, label):
         self.take_evidence(f"PRE_INPUT_{label}")
@@ -187,19 +223,15 @@ class UltimateEngine:
             try:
                 self.page.wait_for_selector(selector, state="visible", timeout=5000)
                 el = self.page.locator(selector).first
-                el.click(force=True)
+                self.physical_click_fallback(el, label)
                 self.page.keyboard.press("Control+A")
                 self.page.keyboard.press("Backspace")
-                self.page.keyboard.type(str(value), delay=random.randint(60, 200))
-                success = True
-                break
+                self._human_type(value)
+                success = True; break
             except: continue
-        
         if not success:
-            if not self.deep_dom_discovery(label, "input", value):
-                return False
-        self.take_evidence(f"POST_INPUT_{label}")
-        return True
+            if not self.deep_dom_discovery(label, "input", value): return False
+        self.take_evidence(f"POST_INPUT_{label}"); return True
 
     def smart_click(self, selector_list, label, is_optional=False):
         self.take_evidence(f"PRE_CLICK_{label}")
@@ -208,20 +240,16 @@ class UltimateEngine:
             try:
                 btn = self.page.locator(selector).first
                 if btn.is_visible(timeout=5000):
-                    if not self.physical_click_fallback(btn, label):
-                        btn.click(force=True)
-                    clicked = True
-                    break
+                    clicked = self.physical_click_fallback(btn, label)
+                    if clicked: break
             except: continue
-        
         if not clicked and not is_optional:
             if not self.deep_dom_discovery(label, "click"):
-                self.page.keyboard.press("Enter")
-                clicked = True
-
+                self.page.keyboard.press("Enter"); clicked = True
         if clicked:
             self.take_evidence(f"POST_CLICK_{label}")
-            time.sleep(random.uniform(2, 4)) 
+            # 8+11. انتظار ذكي + تردد عشوائي
+            time.sleep(random.uniform(3, 6)) 
         elif not is_optional:
             raise Exception(f"CRITICAL: Failed to click {label}")
 
@@ -233,12 +261,14 @@ class UltimateEngine:
                 try:
                     btn = self.page.locator(selector).first
                     if btn.is_visible(timeout=1000):
-                        btn.click(force=True)
-                        break
+                        self.physical_click_fallback(btn, "Skip"); break
                 except: continue
 
     def run_process(self):
         try:
+            # 6. التدفئة المسبقة
+            self._pre_warmup()
+            
             logger.info(f"Starting Engine for: {self.identity['first_name']}")
             self.page.goto("https://accounts.google.com/signup/v2/webcreateaccount?flowName=GlifWebSignIn&flowEntry=SignUp", wait_until="networkidle")
             
@@ -254,10 +284,13 @@ class UltimateEngine:
             
             for sel in ['#month', '#gender']:
                 try:
-                    self.page.locator(sel).click(force=True)
+                    el = self.page.locator(sel).first
+                    self.physical_click_fallback(el, sel)
                     time.sleep(1)
                     repeat = self.identity['month'] if "month" in sel else self.identity['gender']
-                    for _ in range(repeat): self.page.keyboard.press("ArrowDown")
+                    for _ in range(repeat): 
+                        self.page.keyboard.press("ArrowDown")
+                        time.sleep(0.1)
                     self.page.keyboard.press("Enter")
                 except: self.deep_dom_discovery(sel, "click")
             
@@ -265,8 +298,7 @@ class UltimateEngine:
 
             # 3. اختيار الإيميل
             self.page.wait_for_load_state("networkidle")
-            time.sleep(4)
-            
+            time.sleep(random.uniform(4, 6))
             user_field = self.page.locator('input[name="Username"]').first
             if user_field.is_visible():
                 self.smart_input(['input[name="Username"]'], self.identity['username_choice'], "Username")
@@ -280,9 +312,8 @@ class UltimateEngine:
 
             self.smart_click(['#next', 'button', '#selectionNext'], "Next_Email")
 
-            # 4. باسوورد (استدعاء مصفوفة القوة الجديدة)
-            self.page.wait_for_load_state("networkidle")
-            time.sleep(2)
+            # 4. باسوورد
+            self.page.wait_for_load_state("networkidle"); time.sleep(2)
             self.handle_password_matrix()
             self.smart_click(['#createpasswordNext', 'button'], "Next_Password")
 
@@ -304,6 +335,22 @@ class UltimateEngine:
             json.dump(final_data, f, indent=4, ensure_ascii=False)
 
 if __name__ == "__main__":
-    with Camoufox(headless=True, humanize=True) as browser:
-        page = browser.new_page(viewport={"width": 1280, "height": 800})
+    # 9+10+14. تنوع الأجهزة وتجنب الرؤوس الفارغة وتحديث البصمة
+    os_choice = random.choice(["windows", "macos", "linux"])
+    
+    with Camoufox(
+        headless=False, # هام جداً: التشغيل الواجهي داخل xvfb
+        humanize=True,  # 2. إخفاء WebDriver
+        os=os_choice,
+        enable_canvas_noise=True, # 5. ضجيج الكانفاس
+        enable_webgl_noise=True,
+        block_webrtc=True # 3. منع تسريب IP
+    ) as browser:
+        # 1. توافق البيانات: ضبط الإحداثيات واللغة
+        context = browser.new_context(
+            locale="en-US",
+            timezone_id="America/New_York",
+            viewport={"width": 1366, "height": 768}
+        )
+        page = context.new_page()
         UltimateEngine(page).run_process()
