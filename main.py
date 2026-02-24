@@ -10,20 +10,14 @@ from faker import Faker
 from camoufox.sync_api import Camoufox
 from playwright.sync_api import TimeoutError
 
-# نحدد اسم المجلد في البداية وننشئه فوراً
-SESSION_ID = f"PRO_ENGINE_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-REPORT_DIR = os.path.join(os.getcwd(), SESSION_ID)
-os.makedirs(os.path.join(REPORT_DIR, "screenshots"), exist_ok=True)
-
-
 # إعداد السجلات بشكل احترافي
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("UltimateGoogleBot")
 
-# إعداد المسارات والتقارير
-SESSION_ID = f"TRACE_REPORT_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+# --- [تم دمج المسارات هنا لإصلاح خطأ القوس المفقود ومنع تضارب المجلدات] ---
+SESSION_ID = f"ULTIMATE_ENGINE_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 REPORT_DIR = os.path.join(os.getcwd(), SESSION_ID)
-os.makedirs(os.path.join(REPORT_DIR, "screenshots"), exist_ok=True)
+os.makedirs(os.path.join(REPORT_DIR, "screenshots"), exist_ok=True) 
 
 class UltimateEngine:
     def __init__(self, page):
@@ -35,7 +29,6 @@ class UltimateEngine:
 
     def _generate_identity(self):
         """توليد هوية رقمية كاملة بعشوائية تامة وقواعد باسوورد صارمة"""
-        # توليد الباسوورد المطلوب: 10+ خانات، كبير، صغير، أرقام، رموز (+، *)
         pool = string.ascii_lowercase + string.ascii_uppercase + string.digits + "+*"
         pwd = [
             random.choice(string.ascii_uppercase),
@@ -43,7 +36,6 @@ class UltimateEngine:
             random.choice(string.digits),
             random.choice("+*")
         ]
-        # إكمال الطول إلى 14 خانة بعشوائية
         pwd += [random.choice(pool) for _ in range(10)]
         random.shuffle(pwd)
         final_password = "".join(pwd)
@@ -55,7 +47,7 @@ class UltimateEngine:
             "day": str(random.randint(1, 28)),
             "month": str(random.randint(1, 12)),
             "year": str(random.randint(1990, 2003)),
-            "gender": str(random.choice([1, 2])), # 1 ذكر، 2 أنثى
+            "gender": str(random.choice([1, 2])), 
             "password": final_password,
             "username_choice": f"{self.fake.user_name()}{random.randint(100, 9999)}"
         }
@@ -95,7 +87,6 @@ class UltimateEngine:
             raise Exception(f"CRITICAL: Field {label} not found in DOM.")
 
         target.click()
-        # محاكاة الكتابة البشرية البطيئة مع أخطاء طفيفة وسرعات متغيرة
         for char in value:
             self.page.keyboard.type(char, delay=random.randint(60, 200))
         
@@ -116,7 +107,6 @@ class UltimateEngine:
             except: continue
         
         if not clicked and not is_optional:
-            # محاولة أخيرة بناءً على النص
             try:
                 self.page.get_by_role("button").get_by_text("التالي", exact=False).click()
                 clicked = True
@@ -125,12 +115,12 @@ class UltimateEngine:
         if clicked:
             logger.info(f"Successfully clicked: {label}")
             self.take_evidence(f"POST_CLICK_{label}")
-            time.sleep(random.uniform(2, 4)) # انتظار استجابة السيرفر
+            time.sleep(random.uniform(2, 4)) 
         elif not is_optional:
             raise Exception(f"Failed to click required button: {label}")
 
     def auto_skip_manager(self):
-        """مدير التخطي: يقوم بمسح الصفحة بحثاً عن خيارات التخطي في صفحات (الهاتف، الاسترداد، الخدمات)"""
+        """مدير التخطي الذكي لمواجهة جدران الحماية في جوجل"""
         skip_selectors = [
             'button:has-text("تخطي")', 'button:has-text("Skip")',
             'span:has-text("تخطي")', 'span:has-text("Skip")',
@@ -139,14 +129,21 @@ class UltimateEngine:
         ]
         
         logger.info("Scanning for 'Skip' options...")
-        # التحقق المتكرر لأن جوجل قد تظهر عدة صفحات اختيارية
         for _ in range(3):
             time.sleep(1.5)
-            if self.smart_click(skip_selectors, "SKIP_ACTION", is_optional=True):
-                logger.info("✨ Skip detected and executed.")
-                self.page.wait_for_load_state("networkidle")
-            else:
-                break
+            # تم تعديل المنطق هنا ليعمل مع دالة smart_click بشكل صحيح
+            found_skip = False
+            for selector in skip_selectors:
+                try:
+                    btn = self.page.locator(selector).first
+                    if btn.is_visible(timeout=1000):
+                        btn.click()
+                        found_skip = True
+                        logger.info("✨ Skip detected and executed.")
+                        self.page.wait_for_load_state("networkidle")
+                        break
+                except: continue
+            if not found_skip: break
 
     def run_process(self):
         """تنفيذ العملية الكاملة دون اختصار"""
@@ -170,7 +167,6 @@ class UltimateEngine:
             # 3. اختيار الإيميل
             self.page.wait_for_load_state("networkidle")
             time.sleep(2)
-            # اختيار أول إيميل مقترح إذا وجد، وإلا الكتابة يدوياً
             if self.page.locator('div[role="radio"]').first.is_visible(timeout=5000):
                 self.page.locator('div[role="radio"]').first.click()
                 self.take_evidence("Picked_Suggested_Email")
@@ -186,11 +182,11 @@ class UltimateEngine:
             self.smart_input(['input[name="ConfirmPasswd"]'], pwd, "Password_Confirm")
             self.smart_click(['#createpasswordNext', 'button:has-text("التالي")'], "Next_Step_Password")
 
-            # 5. معالجة صفحات التخطي (رقم الهاتف / الاسترداد)
+            # 5. معالجة صفحات التخطي
             self.page.wait_for_load_state("networkidle")
             self.auto_skip_manager()
 
-            # 6. الموافقة النهائية (إذا وصلنا لها)
+            # 6. الموافقة النهائية
             if self.page.locator('button:has-text("أوافق"), button:has-text("I agree")').is_visible(timeout=5000):
                 self.smart_click(['button:has-text("أوافق")', 'button:has-text("I agree")'], "Final_Agreement")
 
@@ -215,8 +211,6 @@ class UltimateEngine:
 if __name__ == "__main__":
     with Camoufox(headless=True, humanize=True) as browser:
         page = browser.new_page()
-        # تعيين دقة الشاشة لمحاكاة سطح المكتب
         page.set_viewport_size({"width": 1920, "height": 1080})
         engine = UltimateEngine(page)
         engine.run_process()
-
