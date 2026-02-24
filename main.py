@@ -335,24 +335,22 @@ class UltimateEngine:
             json.dump(final_data, f, indent=4, ensure_ascii=False)
 
 if __name__ == "__main__":
-    # إعدادات التخفي: سنبقيها بسيطة جداً لتجنب أخطاء المسميات (UnknownProperty)
-    # المكتبة ستفعل التمويه تلقائياً لأننا وضعنا humanize=True بالأسفل
-    ghost_config = {
-        "webrtc": "block",  # ضروري جداً لمنع تسريب IP السيرفر
-    }
-    
+    # اختيار نظام تشغيل عشوائي
     os_choice = random.choice(["windows", "macos"])
-    logger.info(f"🎭 Launching Engine with {os_choice} profile...")
+    
+    logger.info(f"🎭 Launching Ghost Engine with {os_choice} profile...")
 
     try:
+        # الحل الجذري: نترك config فارغاً {}.
+        # بمجرد وضع humanize=True، ستقوم المكتبة بتفعيل كل دروع التخفي تلقائياً وبأفضل المسميات.
         with Camoufox(
-            headless=False,       # ليعمل داخل xvfb في GitHub Actions
-            humanize=True,        # هذا الخيار هو "السحر" الذي يخفي البوت
+            headless=False,      # ضروري للعمل مع xvfb في GitHub Actions
+            humanize=True,       # هذا الخيار يفعل (Canvas, WebGL, Fonts, Audio) تلقائياً
             os=os_choice,
-            config=ghost_config   
+            config={}            # نتركه فارغاً لتجنب أخطاء UnknownProperty تماماً
         ) as browser:
             
-            # ضبط السياق ليكون متسقاً مع الهوية المختارة
+            # ضبط السياق (Context) ليكون متوافقاً مع الهوية
             context = browser.new_context(
                 locale="en-US",
                 timezone_id="America/New_York",
@@ -361,7 +359,7 @@ if __name__ == "__main__":
             
             page = context.new_page()
             
-            # استدعاء المحرك "المتوحش" الخاص بك
+            # 🚀 بدء المحرك
             UltimateEngine(page).run_process()
             
     except Exception as e:
