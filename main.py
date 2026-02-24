@@ -341,7 +341,7 @@ if __name__ == "__main__":
         "canvas": True,       # بديل لـ enable_canvas_noise
         "webgl": True,        # بديل لـ enable_webgl_noise
         "audio": True,
-        "fonts": True,
+        
         "rects": True,
         "webrtc": "block",    # منع تسريب IP الحقيقي
     }
