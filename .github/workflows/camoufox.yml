@@ -32,6 +32,19 @@ jobs:
           # ونستخدم --with-deps لتثبيت اعتمادات النظام تلقائياً بدون تعارضات sudo
           python -m playwright install firefox --with-deps
 
+      
+      - name: 📁 Cache Python venv
+        uses: actions/cache@v3
+        with:
+          path: venv
+          key: ${{ runner.os }}-venv-${{ hashFiles('requirements.txt') }}
+
+      - name: 🔡 Cache Fonts
+        uses: actions/cache@v3
+        with:
+          path: /usr/share/fonts
+          key: ${{ runner.os }}-fonts
+
       - name: 🚀 تشغيل المحرك (Deep Execution)
         run: |
           source venv/bin/activate
