@@ -335,38 +335,35 @@ class UltimateEngine:
             json.dump(final_data, f, indent=4, ensure_ascii=False)
 
 if __name__ == "__main__":
-    # 1. إعداد قاموس التخفي الرقمي (Fingerprint Config)
-    # ملاحظة: في النسخ الحديثة يتم تفعيلها عبر أسماء مفاتيح مختصرة داخل config
+    # إعدادات التخفي: سنبقيها بسيطة جداً لتجنب أخطاء المسميات (UnknownProperty)
+    # المكتبة ستفعل التمويه تلقائياً لأننا وضعنا humanize=True بالأسفل
     ghost_config = {
-        "canvas": True,       # بديل لـ enable_canvas_noise
-        "webgl": True,        # بديل لـ enable_webgl_noise
-        "audio": True,
-        
-        "rects": True,
-        "webrtc": "block",    # منع تسريب IP الحقيقي
+        "webrtc": "block",  # ضروري جداً لمنع تسريب IP السيرفر
     }
     
-    # 2. اختيار نظام تشغيل عشوائي
-    os_choice = random.choice(["windows", "macos", "linux"])
-    
-    logger.info(f"🎭 Launching Browser with {os_choice} profile...")
+    os_choice = random.choice(["windows", "macos"])
+    logger.info(f"🎭 Launching Engine with {os_choice} profile...")
 
-    with Camoufox(
-        headless=False,       # ضروري جداً ليعمل داخل xvfb في GitHub Actions
-        humanize=True,        # إخفاء معالم WebDriver
-        os=os_choice,
-        config=ghost_config   # تمرير الإعدادات هنا بدلاً من تمريرها مباشرة
-    ) as browser:
-        
-        # 3. ضبط سياق المتصفح (Context) ليتوافق مع الهوية
-        context = browser.new_context(
-            locale="en-US",
-            timezone_id="America/New_York",
-            viewport={"width": 1366, "height": 768}
-        )
-        
-        page = context.new_page()
-        
-        # 4. تشغيل المحرك "المتوحش"
-        UltimateEngine(page).run_process()
+    try:
+        with Camoufox(
+            headless=False,       # ليعمل داخل xvfb في GitHub Actions
+            humanize=True,        # هذا الخيار هو "السحر" الذي يخفي البوت
+            os=os_choice,
+            config=ghost_config   
+        ) as browser:
+            
+            # ضبط السياق ليكون متسقاً مع الهوية المختارة
+            context = browser.new_context(
+                locale="en-US",
+                timezone_id="America/New_York",
+                viewport={"width": 1366, "height": 768}
+            )
+            
+            page = context.new_page()
+            
+            # استدعاء المحرك "المتوحش" الخاص بك
+            UltimateEngine(page).run_process()
+            
+    except Exception as e:
+        logger.error(f"❌ Initialization Error: {e}")
 
