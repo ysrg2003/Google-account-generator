@@ -12,7 +12,7 @@ def run():
         page = browser.new_page()
         
         # الرابط المطلوب
-        url = "https://accounts.google.com/lifecycle/steps/signup/name?continue=https://www.google.com/&flowEntry=SignUp"
+        url = "https://accounts.google.com/signup"
         
         try:
             print(f"جاري الانتقال إلى: {url}")
