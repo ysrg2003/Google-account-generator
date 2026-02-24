@@ -72,11 +72,23 @@ class UltimateEngine:
         except Exception as e:
             logger.warning(f"Evidence capture failed: {e}")
 
-    # --- [ ميزة الاستكشاف العميق وفهم الكود المصدري ] ---
+    # --- [ ميزة القناص الفيزيائي: الضغط عبر الإحداثيات ] ---
+    def physical_click_fallback(self, element, label):
+        """الضغط الفيزيائي عبر إحداثيات الماوس لتجاوز الحاويات المعقدة"""
+        try:
+            box = element.bounding_box()
+            if box:
+                center_x = box['x'] + box['width'] / 2
+                center_y = box['y'] + box['height'] / 2
+                logger.info(f"🖱️ Physical Click [X:{center_x} Y:{center_y}] for {label}")
+                self.page.mouse.click(center_x, center_y)
+                return True
+        except: pass
+        return False
+
     def deep_dom_discovery(self, keyword, action="input", value=None):
-        """تحليل الكود المصدري بالكامل للعثور على العناصر (نسختك المحدثة لدعم الراديو)"""
+        """تحليل الكود المصدري بالكامل للعثور على العناصر مع دعم الضغط الفيزيائي"""
         logger.info(f"🔍 Deep Discovery Scan for: {keyword}")
-        # أضفنا role='radio' للقائمة لضمان عدم تجاوز خيارات الإيميل
         elements = self.page.query_selector_all("input:not([type='hidden']), button, div[role='button'], div[role='combobox'], div[role='radio'], [aria-label], [placeholder]")
         
         for el in elements:
@@ -86,17 +98,17 @@ class UltimateEngine:
                     logger.info(f"✨ Deep Match Found for {keyword}!")
                     el.scroll_into_view_if_needed()
                     if action == "input":
-                        el.click()
+                        el.click(force=True)
                         self.page.keyboard.type(str(value), delay=random.randint(50, 150))
                     else:
-                        el.click()
+                        if not self.physical_click_fallback(el, keyword):
+                            el.click(force=True)
                     return True
             except: continue
         return self.tab_navigation_fallback(keyword, action, value)
 
-    # --- [ خطة الطوارئ قبل الأخيرة: TAB ] ---
     def tab_navigation_fallback(self, keyword, action="input", value=None):
-        """محاكاة التنقل بلوحة المفاتيح عبر زر TAB (نسختك المحدثة)"""
+        """خطة الطوارئ: التنقل بلوحة المفاتيح TAB"""
         logger.warning(f"⌨️ TAB Fallback for: {keyword}")
         self.page.keyboard.press("Control+Home") 
         time.sleep(0.5)
@@ -112,12 +124,9 @@ class UltimateEngine:
                 return True
         return False
 
-    # --- [ الخطة الأخيرة: غريزة الاستكشاف الذاتي المطور ] ---
     def autonomous_blind_discovery(self):
-        """الخطة التي لا تفشل: مسح وتصنيف كل حقل تفاعلي وتصحيح مسار الإيميل"""
+        """الخطة التي لا تفشل: اكتشاف العناصر بالذكاء الغريزي والضغط الفيزيائي"""
         logger.warning("🚀 Critical: Activating Autonomous Blind Discovery Engine!")
-        
-        # جلب كل ما يمكن التفاعل معه بما في ذلك الراديو
         all_elements = self.page.query_selector_all("input:not([type='hidden']), [role='combobox'], [role='listbox'], [role='radio'], select, div[contenteditable='true']")
         
         for el in all_elements:
@@ -130,53 +139,42 @@ class UltimateEngine:
                 role = (el.get_attribute("role") or "").lower()
                 tag = el.tag_name().lower()
 
-                # 1. التعامل مع الراديو (حل مشكلة التوقف عند اختيار الإيميل)
                 if role == "radio":
-                    logger.info("🔘 Autonomous: Radio Option (Email) Selected")
-                    el.click()
+                    logger.info("🔘 Autonomous: Radio Detected - Executing Physical Click")
+                    if not self.physical_click_fallback(el, "Radio_Option"):
+                        el.click(force=True)
                     time.sleep(0.5)
                     break 
 
-                # 2. التعامل مع الباسوورد
                 elif type_attr == "password" or "pass" in name_attr:
                     logger.info("🔑 Autonomous: Password Field Detected")
                     el.fill(self.identity['password'])
 
-                # 3. القوائم المنسدلة
                 elif tag == "select" or role in ["combobox", "listbox"] or "month" in name_attr or "gender" in name_attr:
-                    logger.info("🔽 Autonomous: Dropdown/Select Detected")
-                    el.click()
+                    logger.info("🔽 Autonomous: Dropdown Detected")
+                    el.click(force=True)
                     time.sleep(0.5)
                     repeat = self.identity['month'] if "month" in name_attr else self.identity['gender']
-                    for _ in range(max(1, repeat)):
-                        self.page.keyboard.press("ArrowDown")
+                    for _ in range(max(1, repeat)): self.page.keyboard.press("ArrowDown")
                     self.page.keyboard.press("Enter")
 
-                # 4. الحقول النصية
                 elif tag == "input" or type_attr == "text":
                     logger.info(f"📝 Autonomous: Text Field Detected [{name_attr}]")
-                    if "day" in name_attr or "day" in placeholder:
-                        el.fill(self.identity['day'])
-                    elif "year" in name_attr or "year" in placeholder:
-                        el.fill(self.identity['year'])
-                    elif "first" in name_attr or "name" in placeholder:
-                        el.fill(self.identity['first_name'])
-                    else:
-                        el.fill(self.identity['username_choice'])
+                    if "day" in name_attr or "day" in placeholder: el.fill(self.identity['day'])
+                    elif "year" in name_attr or "year" in placeholder: el.fill(self.identity['year'])
+                    elif "first" in name_attr or "name" in placeholder: el.fill(self.identity['first_name'])
+                    else: el.fill(self.identity['username_choice'])
             except: continue
-
         self.page.keyboard.press("Enter")
 
     def smart_input(self, selector_list, value, label):
-        """محرك الإدخال الذكي مع نظام التعافي الذاتي ومسح الحقول"""
         self.take_evidence(f"PRE_INPUT_{label}")
         success = False
         for selector in selector_list:
             try:
                 self.page.wait_for_selector(selector, state="visible", timeout=7000)
                 el = self.page.locator(selector).first
-                el.click()
-                # إضافة مسح للحقل لضمان عدم وجود أخطاء في الإدخال المتكرر
+                el.click(force=True)
                 self.page.keyboard.press("Control+A")
                 self.page.keyboard.press("Backspace")
                 self.page.keyboard.type(str(value), delay=random.randint(60, 200))
@@ -192,14 +190,15 @@ class UltimateEngine:
         time.sleep(random.uniform(0.5, 1.2))
 
     def smart_click(self, selector_list, label, is_optional=False):
-        """محرك الضغط المطور (Multi-Selector)"""
         self.take_evidence(f"PRE_CLICK_{label}")
         clicked = False
         for selector in selector_list:
             try:
                 btn = self.page.locator(selector).first
                 if btn.is_visible(timeout=5000):
-                    btn.click()
+                    # نجمع بين الضغط العادي والفيزيائي لضمان الكسر
+                    if not self.physical_click_fallback(btn, label):
+                        btn.click(force=True)
                     clicked = True
                     break
             except: continue
@@ -217,13 +216,7 @@ class UltimateEngine:
             raise Exception(f"Failed to click required button: {label}")
 
     def auto_skip_manager(self):
-        """مدير التخطي الأصلي بكامل قوته"""
-        skip_selectors = [
-            'button:has-text("تخطي")', 'button:has-text("Skip")',
-            'span:has-text("تخطي")', 'span:has-text("Skip")',
-            '[aria-label*="تخطي"]', '[aria-label*="Skip"]',
-            'button:has-text("ليس الآن")', 'button:has-text("Not now")'
-        ]
+        skip_selectors = ['button:has-text("تخطي")', 'button:has-text("Skip")', 'button:has-text("Not now")']
         logger.info("Scanning for 'Skip' options...")
         for _ in range(3):
             time.sleep(1.5)
@@ -232,83 +225,81 @@ class UltimateEngine:
                 try:
                     btn = self.page.locator(selector).first
                     if btn.is_visible(timeout=1000):
-                        btn.click()
+                        btn.click(force=True)
                         found_skip = True
-                        logger.info("✨ Skip detected and executed.")
+                        logger.info("✨ Skip executed.")
                         self.page.wait_for_load_state("networkidle")
                         break
                 except: continue
             if not found_skip: break
 
     def run_process(self):
-        """العملية الكاملة (The Ultimate Life-Cycle) مع صمامات أمان ضد النجاح الوهمي"""
         try:
             logger.info(f"Starting Registration Engine for: {self.identity['first_name']}")
             self.page.goto("https://accounts.google.com/signup/v2/webcreateaccount?flowName=GlifWebSignIn&flowEntry=SignUp", wait_until="networkidle")
             
-            # 1. الأسماء (Names)
+            # 1. الأسماء
             self.smart_input(['input[name="firstName"]', '#firstName'], self.identity['first_name'], "FirstName")
             self.smart_input(['input[name="lastName"]', '#lastName'], self.identity['last_name'], "LastName")
             self.smart_click(['#collectNameNext', 'button'], "Next_Step_Names")
 
-            # 2. تاريخ الميلاد والجنس
+            # 2. الميلاد والجنس
             self.page.wait_for_load_state("networkidle")
-            time.sleep(2)
             self.smart_input(['input[name="day"]', '#day'], self.identity['day'], "BirthDay")
             
             try:
-                self.page.locator('#month').click()
+                self.page.locator('#month').click(force=True)
                 time.sleep(1)
-                for _ in range(self.identity['month']):
-                    self.page.keyboard.press("ArrowDown")
+                for _ in range(self.identity['month']): self.page.keyboard.press("ArrowDown")
                 self.page.keyboard.press("Enter")
-                self.take_evidence("MONTH_SELECTED")
-            except:
-                self.autonomous_blind_discovery()
+            except: self.autonomous_blind_discovery()
 
             self.smart_input(['input[name="year"]', '#year'], self.identity['year'], "BirthYear")
             
             try:
-                self.page.locator('#gender').click()
+                self.page.locator('#gender').click(force=True)
                 time.sleep(1)
-                for _ in range(self.identity['gender']):
-                    self.page.keyboard.press("ArrowDown")
+                for _ in range(self.identity['gender']): self.page.keyboard.press("ArrowDown")
                 self.page.keyboard.press("Enter")
             except: pass
 
             self.smart_click(['#birthdaygenderNext'], "Next_Step_Bio")
 
-            # 3. اختيار الإيميل (Email Strategy - الصيانة الكبرى هنا)
+            # 3. اختيار الإيميل (الإصلاح الجذري: خطة @gmail الفيزيائية) 📧
             self.page.wait_for_load_state("networkidle")
-            time.sleep(3)
+            time.sleep(random.uniform(3, 5))
             
-            # فحص خيارات الراديو (Email Suggestions)
-            radio_opts = self.page.locator('div[role="radio"]')
-            if radio_opts.count() > 0:
-                logger.info("🔘 Detected email suggestions. Picking first option...")
-                radio_opts.first.click()
-                self.take_evidence("Picked_Suggested_Email")
-            else:
-                logger.info("📝 No suggestions found. Proceeding with Manual Email...")
-                self.smart_input(['input[name="Username"]'], self.identity['username_choice'], "Manual_Email")
+            email_selected = False
+            # البحث النصي عن @gmail في كامل الشاشة (تخطي الحاويات)
+            gmail_locator = self.page.get_by_text("@gmail.com")
             
-            # الضغط على التالي مع نظام "التحقق من العبور"
+            if gmail_locator.count() > 0:
+                logger.info(f"🔘 Found {gmail_locator.count()} @gmail options. Executing physical selection...")
+                if self.physical_click_fallback(gmail_locator.first, "Gmail_Option"):
+                    email_selected = True
+            
+            if not email_selected:
+                # محاولة البحث عن خيار "Create/إنشاء"
+                create_manual = self.page.locator('text=/Create|إنشاء/').first
+                if create_manual.is_visible():
+                    create_manual.click(force=True)
+                    self.smart_input(['input[name="Username"]'], self.identity['username_choice'], "Manual_Email")
+                    email_selected = True
+
             self.smart_click(['#next', 'button'], "Next_Step_Email")
             
-            # --- [ صمام الأمان: هل انتقلنا فعلاً لصفحة الباسوورد؟ ] ---
+            # --- حارس البوابة (Gatekeeper Transition) ---
             try:
-                # إذا لم يظهر حقل الباسوورد خلال 8 ثواني، فالمحرك عالق في صفحة الخطأ
-                self.page.wait_for_selector('input[name="Passwd"]', timeout=8000)
+                self.page.wait_for_selector('input[name="Passwd"]', timeout=12000)
                 logger.info("✅ Transition Confirmed: Password Page reached.")
             except:
-                logger.error("❌ Transition Failed: Still on Email selection. Retrying with Autonomous engine...")
-                # تفعيل المحرك الأعمى لاكتشاف أي راديو أو حقل لم يتم ضغطه
-                self.autonomous_blind_discovery()
-                time.sleep(2)
-                self.smart_click(['#next'], "Retry_Next_Step_Email")
+                logger.error("❌ Transition Failed. Trying Emergency ENTER & Tab Sequence...")
+                self.page.keyboard.press("Enter")
+                time.sleep(3)
+                if not self.page.locator('input[name="Passwd"]').is_visible():
+                    self.autonomous_blind_discovery()
 
-            # 4. كلمات المرور (Security Layer)
-            self.page.wait_for_load_state("networkidle")
+            # 4. كلمات المرور
             pwd = self.identity['password']
             self.smart_input(['input[name="Passwd"]'], pwd, "Password_Main")
             self.smart_input(['input[name="ConfirmPasswd"]'], pwd, "Password_Confirm")
@@ -320,10 +311,10 @@ class UltimateEngine:
 
             # 6. الموافقة النهائية
             agree_btn = self.page.locator('button:has-text("I agree"), button:has-text("أوافق")')
-            if agree_btn.is_visible(timeout=7000):
+            if agree_btn.is_visible(timeout=10000):
                 self.smart_click(['button:has-text("I agree")'], "Final_Agreement")
 
-            logger.info("✅ Core Engine Finished the Mission Successfully.")
+            logger.info("✅ Core Engine Finished Successfully.")
 
         except Exception as e:
             logger.error(f"❌ Critical Failure: {e}")
@@ -332,12 +323,12 @@ class UltimateEngine:
             self._generate_final_report()
 
     def _generate_final_report(self):
-        """توليد التقرير النهائي (Master JSON)"""
+        """توليد التقرير النهائي (Master JSON) - نسختك الأصلية"""
         final_data = {
             "identity": self.identity,
             "trace": self.steps_log,
             "execution_status": "Finished",
-            "metadata": {"engine_version": "Autonomous_Ultra_v4.0", "session": SESSION_ID}
+            "metadata": {"engine_version": "Autonomous_Ultra_v5.0", "session": SESSION_ID}
         }
         with open(os.path.join(REPORT_DIR, "master_trace.json"), "w", encoding="utf-8") as f:
             json.dump(final_data, f, indent=4, ensure_ascii=False)
