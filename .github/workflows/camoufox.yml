@@ -1,43 +1,55 @@
-name: Ultimate Web Automation Engine
+name: Enterprise Web Automation Engine
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # تشغيل يدوي للتحكم الكامل
 
 jobs:
   run-core:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 25 # وقت كافٍ للتعامل مع بطء صفحات جوجل أو عمليات التخطي
 
     steps:
-      - name: 📥 Checkout Code
+      - name: 📥 سحب الكود المصدر
         uses: actions/checkout@v4
 
-      - name: 🐍 Setup Python 3.11
+      - name: 🐍 إعداد بيئة بايثون 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
+          cache: 'pip' # تسريع التشغيل في المرات القادمة
 
-      - name: 🛠️ Install Dependencies (Force Path)
+      - name: 🛠️ تثبيت المحرك والاعتماديات (Force-Install Mode)
         run: |
+          # تحديث pip لضمان توافق المكتبات الحديثة
           python -m pip install --upgrade pip
-          pip install faker camoufox[nimbus] playwright
+          
+          # تثبيت المكتبات المطلوبة للسكربت الاحترافي
+          python -m pip install faker camoufox[nimbus] playwright
+          
+          # تثبيت متصفح فايرفوكس مع كافة الاعتماديات النظامية (Linux Dependencies)
           python -m playwright install firefox --with-deps
+          
+          # تثبيت اعتماديات النظام الإضافية لضمان عمل Camoufox بدون مشاكل واجهة رسومية
           sudo python -m playwright install-deps firefox
 
-      - name: 🚀 Run Engine (Deep Execution)
+      - name: 🚀 تشغيل المحرك (Deep Execution)
         run: |
-          # نستخدم python -m لضمان استخدام البيئة الصحيحة
+          # التأكد من أن Playwright جاهز في البيئة الحالية قبل البدء
+          python -m playwright install-deps
+          
+          # تشغيل السكربت الرئيسي
           python main.py
         env:
-          PYTHONUNBUFFERED: 1
+          PYTHONUNBUFFERED: 1 # لضمان ظهور السجلات (Logs) فوراً في شاشة GitHub
 
-      - name: 📊 Upload Full Evidence Artifact
-        if: always()
+      - name: 📊 تصدير الحزمة التوثيقية (Full Artifact)
+        if: always() # هام جداً: يرفع الصور والتقارير حتى لو فشل السكربت
         uses: actions/upload-artifact@v4
         with:
-          name: Full-Blackbox-Report-${{ github.run_number }}
+          name: Full-Trace-Report-Run-${{ github.run_number }}
+          # نستخدم النمط النجمي (*) لضمان التقاط المجلد الديناميكي الذي ينشئه السكربت
           path: |
             PRO_ENGINE_*
             *.json
-          retention-days: 14
+            screenshots/
+          retention-days: 14 # الاحتفاظ بالصور والبيانات لمدة أسبوعين
