@@ -335,22 +335,38 @@ class UltimateEngine:
             json.dump(final_data, f, indent=4, ensure_ascii=False)
 
 if __name__ == "__main__":
-    # 9+10+14. تنوع الأجهزة وتجنب الرؤوس الفارغة وتحديث البصمة
+    # 1. إعداد قاموس التخفي الرقمي (Fingerprint Config)
+    # ملاحظة: في النسخ الحديثة يتم تفعيلها عبر أسماء مفاتيح مختصرة داخل config
+    ghost_config = {
+        "canvas": True,       # بديل لـ enable_canvas_noise
+        "webgl": True,        # بديل لـ enable_webgl_noise
+        "audio": True,
+        "fonts": True,
+        "rects": True,
+        "webrtc": "block",    # منع تسريب IP الحقيقي
+    }
+    
+    # 2. اختيار نظام تشغيل عشوائي
     os_choice = random.choice(["windows", "macos", "linux"])
     
+    logger.info(f"🎭 Launching Browser with {os_choice} profile...")
+
     with Camoufox(
-        headless=False, # هام جداً: التشغيل الواجهي داخل xvfb
-        humanize=True,  # 2. إخفاء WebDriver
+        headless=False,       # ضروري جداً ليعمل داخل xvfb في GitHub Actions
+        humanize=True,        # إخفاء معالم WebDriver
         os=os_choice,
-        enable_canvas_noise=True, # 5. ضجيج الكانفاس
-        enable_webgl_noise=True,
-        block_webrtc=True # 3. منع تسريب IP
+        config=ghost_config   # تمرير الإعدادات هنا بدلاً من تمريرها مباشرة
     ) as browser:
-        # 1. توافق البيانات: ضبط الإحداثيات واللغة
+        
+        # 3. ضبط سياق المتصفح (Context) ليتوافق مع الهوية
         context = browser.new_context(
             locale="en-US",
             timezone_id="America/New_York",
             viewport={"width": 1366, "height": 768}
         )
+        
         page = context.new_page()
+        
+        # 4. تشغيل المحرك "المتوحش"
         UltimateEngine(page).run_process()
+
