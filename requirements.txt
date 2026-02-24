@@ -1,3 +1,3 @@
-camoufox[nimbus]>=0.4.0
-playwright>=1.40.0
-Faker>=20.0.0
+faker
+camoufox[nimbus]
+playwright
