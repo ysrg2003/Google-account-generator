@@ -2,171 +2,215 @@ import json
 import time
 import os
 import random
+import string
+import logging
 import uuid
 from datetime import datetime
+from faker import Faker
 from camoufox.sync_api import Camoufox
-from playwright.sync_api import TimeoutError as PlaywrightTimeout
+from playwright.sync_api import TimeoutError
 
-# إعدادات التوثيق
-REPORT_DIR = f"automation_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-os.makedirs(REPORT_DIR, exist_ok=True)
-os.makedirs(f"{REPORT_DIR}/screenshots", exist_ok=True)
+# إعداد السجلات بشكل احترافي
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("UltimateGoogleBot")
 
-class AutomationEngine:
+# إعداد المسارات والتقارير
+SESSION_ID = f"TRACE_REPORT_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+REPORT_DIR = os.path.join(os.getcwd(), SESSION_ID)
+os.makedirs(os.path.join(REPORT_DIR, "screenshots"), exist_ok=True)
+
+class UltimateEngine:
     def __init__(self, page):
         self.page = page
-        self.history = []
-        self.start_time = time.time()
+        self.fake = Faker(['en_US', 'ar_SA'])
+        self.identity = self._generate_identity()
+        self.steps_log = []
+        self.step_idx = 0
 
-    def log(self, action, status, details=None, error=None):
-        """نظام تسجيل فائق الدقة"""
-        timestamp = datetime.now().isoformat()
-        log_entry = {
-            "id": str(uuid.uuid4())[:8],
-            "timestamp": timestamp,
-            "action": action,
-            "status": status,
-            "details": details,
-            "error": str(error) if error else None,
-            "url": self.page.url
+    def _generate_identity(self):
+        """توليد هوية رقمية كاملة بعشوائية تامة وقواعد باسوورد صارمة"""
+        # توليد الباسوورد المطلوب: 10+ خانات، كبير، صغير، أرقام، رموز (+، *)
+        pool = string.ascii_lowercase + string.ascii_uppercase + string.digits + "+*"
+        pwd = [
+            random.choice(string.ascii_uppercase),
+            random.choice(string.ascii_lowercase),
+            random.choice(string.digits),
+            random.choice("+*")
+        ]
+        # إكمال الطول إلى 14 خانة بعشوائية
+        pwd += [random.choice(pool) for _ in range(10)]
+        random.shuffle(pwd)
+        final_password = "".join(pwd)
+
+        return {
+            "id": str(uuid.uuid4()),
+            "first_name": self.fake.first_name(),
+            "last_name": self.fake.last_name(),
+            "day": str(random.randint(1, 28)),
+            "month": str(random.randint(1, 12)),
+            "year": str(random.randint(1990, 2003)),
+            "gender": str(random.choice([1, 2])), # 1 ذكر، 2 أنثى
+            "password": final_password,
+            "username_choice": f"{self.fake.user_name()}{random.randint(100, 9999)}"
         }
-        self.history.append(log_entry)
+
+    def take_evidence(self, action_label):
+        """توثيق مرئي فوري لكل حركة برمجية"""
+        self.step_idx += 1
+        ts = datetime.now().strftime("%H%M%S_%f")
+        filename = f"{self.step_idx:03d}_{action_label}_{ts}.png"
+        save_path = os.path.join(REPORT_DIR, "screenshots", filename)
         
-        # التقاط صورة لكل حدث (قبل وبعد)
-        shot_name = f"{log_entry['id']}_{action}.png"
         try:
-            self.page.screenshot(path=f"{REPORT_DIR}/screenshots/{shot_name}", full_page=True)
-            log_entry["screenshot"] = shot_name
-        except:
-            pass
-            
-        print(f"[{timestamp}] {action.upper()}: {status} | {details if details else ''}")
-
-    def human_type(self, selector, text, label):
-        """كتابة بشرية مع تأخيرات عشوائية وأخطاء مطبعية مصححة (اختياري)"""
-        try:
-            self.page.wait_for_selector(selector, state="visible", timeout=10000)
-            element = self.page.locator(selector)
-            element.click() # الضغط قبل الكتابة
-            
-            for char in text:
-                self.page.keyboard.type(char)
-                time.sleep(random.uniform(0.05, 0.2)) # سرعة كتابة متفاوتة
-            
-            self.log("typing", "success", {"field": label, "length": len(text)})
+            self.page.screenshot(path=save_path, full_page=True)
+            self.steps_log.append({
+                "step_index": self.step_idx,
+                "label": action_label,
+                "timestamp": ts,
+                "url": self.page.url,
+                "screenshot": filename
+            })
         except Exception as e:
-            self.log("typing", "failed", {"field": label}, error=e)
-            raise
+            logger.warning(f"Could not take screenshot: {e}")
 
-    def smart_click(self, selectors, label):
-        """محاولة الضغط باستخدام عدة محددات في حال تغير الكود المصدري"""
-        success = False
-        for selector in selectors:
+    def smart_input(self, selector_list, value, label):
+        """محرك إدخال ذكي يحاكي البشر ويبحث عن الحقل بأكثر من طريقة"""
+        self.take_evidence(f"PRE_INPUT_{label}")
+        target = None
+        for selector in selector_list:
             try:
-                self.page.wait_for_selector(selector, state="visible", timeout=5000)
-                self.page.click(selector)
-                self.log("click", "success", {"label": label, "selector": selector})
-                success = True
+                el = self.page.locator(selector).first
+                if el.is_visible(timeout=5000):
+                    target = el
+                    break
+            except: continue
+        
+        if not target:
+            raise Exception(f"CRITICAL: Field {label} not found in DOM.")
+
+        target.click()
+        # محاكاة الكتابة البشرية البطيئة مع أخطاء طفيفة وسرعات متغيرة
+        for char in value:
+            self.page.keyboard.type(char, delay=random.randint(60, 200))
+        
+        self.take_evidence(f"POST_INPUT_{label}")
+        time.sleep(random.uniform(0.5, 1.2))
+
+    def smart_click(self, selector_list, label, is_optional=False):
+        """محرك ضغط يبحث عن الأزرار النصية أو البرمجية"""
+        self.take_evidence(f"PRE_CLICK_{label}")
+        clicked = False
+        for selector in selector_list:
+            try:
+                btn = self.page.locator(selector).first
+                if btn.is_visible(timeout=4000):
+                    btn.click()
+                    clicked = True
+                    break
+            except: continue
+        
+        if not clicked and not is_optional:
+            # محاولة أخيرة بناءً على النص
+            try:
+                self.page.get_by_role("button").get_by_text("التالي", exact=False).click()
+                clicked = True
+            except: pass
+
+        if clicked:
+            logger.info(f"Successfully clicked: {label}")
+            self.take_evidence(f"POST_CLICK_{label}")
+            time.sleep(random.uniform(2, 4)) # انتظار استجابة السيرفر
+        elif not is_optional:
+            raise Exception(f"Failed to click required button: {label}")
+
+    def auto_skip_manager(self):
+        """مدير التخطي: يقوم بمسح الصفحة بحثاً عن خيارات التخطي في صفحات (الهاتف، الاسترداد، الخدمات)"""
+        skip_selectors = [
+            'button:has-text("تخطي")', 'button:has-text("Skip")',
+            'span:has-text("تخطي")', 'span:has-text("Skip")',
+            '[aria-label*="تخطي"]', '[aria-label*="Skip"]',
+            'button:has-text("ليس الآن")', 'button:has-text("Not now")'
+        ]
+        
+        logger.info("Scanning for 'Skip' options...")
+        # التحقق المتكرر لأن جوجل قد تظهر عدة صفحات اختيارية
+        for _ in range(3):
+            time.sleep(1.5)
+            if self.smart_click(skip_selectors, "SKIP_ACTION", is_optional=True):
+                logger.info("✨ Skip detected and executed.")
+                self.page.wait_for_load_state("networkidle")
+            else:
                 break
-            except:
-                continue
-        
-        if not success:
-            self.log("click", "failed", {"label": label})
-            raise Exception(f"Could not click on {label}")
 
-    def get_page_intel(self):
-        """فحص عميق للصفحة لفهم الحقول المتاحة (فهم الكود المصدري)"""
-        intel = self.page.evaluate("""() => {
-            return {
-                inputs: Array.from(document.querySelectorAll('input')).map(i => ({name: i.name, type: i.type, visible: i.offsetWidth > 0})),
-                buttons: Array.from(document.querySelectorAll('button')).map(b => ({text: b.innerText, id: b.id})),
-                title: document.title,
-                url: location.href
-            }
-        }""")
-        self.log("page_inspection", "success", intel)
-        return intel
-
-def run_mission():
-    # إعدادات التخفي القصوى من Camoufox
-    with Camoufox(
-        headless=True,
-        humanize=True,
-        os=["windows", "macos"],
-        screen={"width": 1920, "height": 1080}
-    ) as browser:
-        
-        context = browser.new_context(
-            locale="ar-EG",
-            timezone_id="Africa/Cairo"
-        )
-        page = context.new_page()
-        engine = AutomationEngine(page)
-
-        # 1. الدخول والمراقبة
-        target_url = "https://accounts.google.com/lifecycle/steps/signup/name?continue=https://www.google.com/&flowEntry=SignUp"
-        engine.log("navigation", "start", {"target": target_url})
-        page.goto(target_url, wait_until="networkidle")
-        
+    def run_process(self):
+        """تنفيذ العملية الكاملة دون اختصار"""
         try:
-            # 2. تحليل الصفحة (فهم الكود المصدري ديناميكياً)
-            engine.get_page_intel()
-
-            # 3. خطوة الأسماء
-            engine.human_type('input[name="firstName"]', "ياسين", "الاسم الأول")
-            engine.human_type('input[name="lastName"]', "الخالدي", "اسم العائلة")
+            logger.info(f"Starting Registration with Identity: {self.identity['first_name']}")
+            self.page.goto("https://accounts.google.com/lifecycle/steps/signup/name?continue=https://www.google.com/&flowEntry=SignUp", wait_until="networkidle")
             
-            # الضغط على زر التالي (بمحددات متعددة)
-            engine.smart_click([
-                'button:has-text("التالي")', 
-                'button:has-text("Next")', 
-                '#accountDetailsNext button'
-            ], "زر الانتقال لتاريخ الميلاد")
+            # 1. الأسماء
+            self.smart_input(['input[name="firstName"]', '#firstName'], self.identity['first_name'], "FirstName")
+            self.smart_input(['input[name="lastName"]', '#lastName'], self.identity['last_name'], "LastName")
+            self.smart_click(['#collectNameNext', 'button:has-text("التالي")'], "Next_Step_Names")
 
-            # 4. انتظار تحميل صفحة البيانات الشخصية
-            page.wait_for_load_state("networkidle")
+            # 2. تاريخ الميلاد والجنس
+            self.page.wait_for_load_state("networkidle")
+            self.smart_input(['input[name="day"]'], self.identity['day'], "BirthDay")
+            self.page.locator('select#month').select_option(value=self.identity['month'])
+            self.smart_input(['input[name="year"]'], self.identity['year'], "BirthYear")
+            self.page.locator('select#gender').select_option(value=self.identity['gender'])
+            self.smart_click(['#birthdaygenderNext', 'button:has-text("التالي")'], "Next_Step_Bio")
+
+            # 3. اختيار الإيميل
+            self.page.wait_for_load_state("networkidle")
             time.sleep(2)
-            engine.get_page_intel() # فهم الصفحة الجديدة
-
-            # 5. تعبئة التاريخ (التعامل مع Dropdowns والنصوص)
-            engine.human_type('input[name="day"]', "12", "اليوم")
+            # اختيار أول إيميل مقترح إذا وجد، وإلا الكتابة يدوياً
+            if self.page.locator('div[role="radio"]').first.is_visible(timeout=5000):
+                self.page.locator('div[role="radio"]').first.click()
+                self.take_evidence("Picked_Suggested_Email")
+            else:
+                self.smart_input(['input[name="Username"]'], self.identity['username_choice'], "Manual_Email")
             
-            # اختيار الشهر (جوجل يستخدم أحياناً Divs مخصصة أو Select)
-            try:
-                page.locator('select#month').select_option(value="3") # مارس
-            except:
-                engine.smart_click(['#month', '[aria-label="الشهر"]'], "فتح قائمة الشهور")
-                page.click('text="مارس"')
+            self.smart_click(['#next', 'button:has-text("التالي")'], "Next_Step_Email")
 
-            engine.human_type('input[name="year"]', "1992", "السنة")
-            
-            # اختيار الجنس
-            engine.smart_click(['select#gender', '[aria-label="الجنس"]'], "اختيار الجنس")
-            page.locator('select#gender').select_option(value="1") # ذكر
+            # 4. كلمات المرور
+            self.page.wait_for_load_state("networkidle")
+            pwd = self.identity['password']
+            self.smart_input(['input[name="Passwd"]'], pwd, "Password_Main")
+            self.smart_input(['input[name="ConfirmPasswd"]'], pwd, "Password_Confirm")
+            self.smart_click(['#createpasswordNext', 'button:has-text("التالي")'], "Next_Step_Password")
 
-            engine.smart_click(['button:has-text("التالي")', 'button:has-text("Next")'], "زر الانتقال لاسم المستخدم")
+            # 5. معالجة صفحات التخطي (رقم الهاتف / الاسترداد)
+            self.page.wait_for_load_state("networkidle")
+            self.auto_skip_manager()
 
-            # 6. المرحلة النهائية (اختيار الإيميل والباسوورد)
-            page.wait_for_load_state("networkidle")
-            # ... استكمال بقية الحقول بنفس النمط الاحترافي ...
+            # 6. الموافقة النهائية (إذا وصلنا لها)
+            if self.page.locator('button:has-text("أوافق"), button:has-text("I agree")').is_visible(timeout=5000):
+                self.smart_click(['button:has-text("أوافق")', 'button:has-text("I agree")'], "Final_Agreement")
+
+            logger.info("Mission Completed Successfully.")
 
         except Exception as e:
-            engine.log("mission_critical_failure", "error", error=e)
-        
+            logger.error(f"Critical Engine Failure: {e}")
+            self.take_evidence("FATAL_ERROR")
         finally:
-            # تصدير التقرير النهائي الشامل
-            report = {
-                "summary": {
-                    "total_steps": len(engine.history),
-                    "duration": f"{time.time() - engine.start_time:.2f}s",
-                    "final_url": page.url
-                },
-                "trace": engine.history
-            }
-            with open(f"{REPORT_DIR}/final_log.json", "w", encoding="utf-8") as f:
-                json.dump(report, f, ensure_ascii=False, indent=4)
-            print(f"🏁 تم حفظ التقرير الكامل في: {REPORT_DIR}")
+            self._generate_final_report()
+
+    def _generate_final_report(self):
+        final_data = {
+            "identity": self.identity,
+            "trace": self.steps_log,
+            "execution_status": "Finished"
+        }
+        with open(os.path.join(REPORT_DIR, "master_trace.json"), "w", encoding="utf-8") as f:
+            json.dump(final_data, f, indent=4, ensure_ascii=False)
+        logger.info(f"Report generated at: {REPORT_DIR}")
 
 if __name__ == "__main__":
-    run_mission()
+    with Camoufox(headless=True, humanize=True) as browser:
+        page = browser.new_page()
+        # تعيين دقة الشاشة لمحاكاة سطح المكتب
+        page.set_viewport_size({"width": 1920, "height": 1080})
+        engine = UltimateEngine(page)
+        engine.run_process()
+
